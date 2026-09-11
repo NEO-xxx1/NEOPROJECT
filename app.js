@@ -85,13 +85,47 @@ closeButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         gameModal.style.display = 'none';
         programModal.style.display = 'none';
+        hideSearchStatus();
     });
 });
 
 window.addEventListener('click', (event) => {
-    if (event.target === gameModal) gameModal.style.display = 'none';
-    if (event.target === programModal) programModal.style.display = 'none';
+    if (event.target === gameModal) {
+        gameModal.style.display = 'none';
+        hideSearchStatus();
+    }
+    if (event.target === programModal) {
+        programModal.style.display = 'none';
+    }
 });
+
+// Make delete functions global for onclick handlers
+window.deleteGame = function(id) {
+    games = games.filter(game => game.id !== id);
+    saveGames();
+    renderGames();
+};
+
+window.deleteProgram = function(id) {
+    programs = programs.filter(program => program.id !== id);
+    savePrograms();
+    renderPrograms();
+};
+
+// Local functions (not used anymore but kept for reference) - REMOVED TO AVOID CONFLICTS
+/*
+function deleteGameLocal(id) {
+    games = games.filter(game => game.id !== id);
+    saveGames();
+    renderGames();
+}
+
+function deleteProgramLocal(id) {
+    programs = programs.filter(program => program.id !== id);
+    savePrograms();
+    renderPrograms();
+}
+*/
 
 // Auto-search game image when name changes
 let searchTimeout;
@@ -110,43 +144,117 @@ gameNameInput.addEventListener('input', function() {
     }, 800);
 });
 
-// Search for game image using RAWG API or Steam
+// Search for game image using multiple sources
 async function searchGameImage(gameName) {
     showSearchStatus('loading', `Buscando imagem para "${gameName}"...`);
     
     try {
-        // Try RAWG API first (free, no key required for basic usage)
-        const rawgResponse = await fetch(`https://api.rawg.io/api/games?key=d4d0f9b4e0c34e5f8a7b6c9d0e1f2a3b&search=${encodeURIComponent(gameName)}&page_size=1`);
+        // Method 1: Use IGDB image via placeholder service
+        const igdbQuery = encodeURIComponent(gameName);
         
-        if (rawgResponse.ok) {
-            const data = await rawgResponse.json();
-            if (data.results && data.results.length > 0 && data.results[0].background_image) {
-                showSearchStatus('success', `Imagem encontrada: ${data.results[0].name}`);
-                return data.results[0].background_image;
+        // Try to get from Steam Grid API (no key required for basic usage)
+        const steamGridUrl = `https://www.steamgriddb.com/api/v2/search/10k/${igdbQuery}`;
+        
+        try {
+            const response = await fetch(steamGridUrl);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data.length > 0) {
+                    const gameId = data.data[0].id;
+                    const logoUrl = `https://www.steamgriddb.com/api/v2/logo/${gameId}`;
+                    
+                    const logoResponse = await fetch(logoUrl);
+                    if (logoResponse.ok) {
+                        const logoData = await logoResponse.json();
+                        if (logoData.success && logoData.data.length > 0) {
+                            const imageUrl = logoData.data[0].url;
+                            showSearchStatus('success', `Imagem encontrada: ${gameName}`);
+                            return imageUrl;
+                        }
+                    }
+                }
             }
+        } catch (e) {
+            console.log('SteamGrid DB failed, trying fallback...');
         }
         
-        // Fallback: Use Steam API proxy
-        const steamResponse = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://store.steampowered.com/api/search?term=${encodeURIComponent(gameName)}&cc=us&l=english`)}`);
+        // Method 2: Use RAWG API with demo key pattern or fallback
+        // Since we can't use real API keys in client-side code safely, use a visual placeholder
+        const genreColors = {
+            'Ação': 'dc3545',
+            'RPG': '6f42c1', 
+            'Aventura': '28a745',
+            'Estratégia': 'fd7e14',
+            'Esporte': '007bff',
+            'Corrida': 'ffc107',
+            'Terror': '343a40',
+            'Indie': '17a2b8'
+        };
         
-        if (steamResponse.ok) {
-            const data = await steamResponse.json();
-            if (data.items && data.items.length > 0) {
-                const appId = data.items[0].id;
-                const imageUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
-                showSearchStatus('success', `Imagem da Steam encontrada!`);
-                return imageUrl;
+        // Generate a nice gradient placeholder with game name
+        const canvas = document.createElement('canvas');
+        canvas.width = 310;
+        canvas.height = 310;
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient background
+        const hue = Math.floor(Math.random() * 360);
+        const gradient = ctx.createLinearGradient(0, 0, 310, 310);
+        gradient.addColorStop(0, `hsl(${hue}, 70%, 40%)`);
+        gradient.addColorStop(1, `hsl(${(hue + 40) % 360}, 70%, 25%)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 310, 310);
+        
+        // Add game name text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 28px Segoe UI, Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Word wrap for long names
+        const words = gameName.split(' ');
+        let lines = [];
+        let currentLine = '';
+        
+        words.forEach(word => {
+            if (ctx.measureText(currentLine + word).width < 280) {
+                currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+                if (currentLine) lines.push(currentLine);
+                currentLine = word;
             }
-        }
+        });
+        if (currentLine) lines.push(currentLine);
         
-        // Final fallback: Use IGDB image placeholder
-        showSearchStatus('error', 'Imagem não encontrada. Usando padrão.');
-        return null;
+        const lineHeight = 35;
+        const startY = (310 - (lines.length * lineHeight)) / 2 + 15;
+        
+        lines.forEach((line, i) => {
+            ctx.fillText(line, 155, startY + (i * lineHeight));
+        });
+        
+        // Convert to data URL
+        const imageUrl = canvas.toDataURL('image/png');
+        showSearchStatus('success', `Capa gerada para: ${gameName}`);
+        return imageUrl;
         
     } catch (error) {
-        console.error('Erro ao buscar imagem:', error);
-        showSearchStatus('error', 'Erro na busca. Usando imagem padrão.');
-        return null;
+        console.error('Erro ao buscar/generar imagem:', error);
+        showSearchStatus('error', 'Usando imagem padrão.');
+        
+        // Final fallback - solid color
+        const canvas = document.createElement('canvas');
+        canvas.width = 310;
+        canvas.height = 310;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#6c757d';
+        ctx.fillRect(0, 0, 310, 310);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(gameName, 155, 155);
+        return canvas.toDataURL('image/png');
     }
 }
 
@@ -170,11 +278,6 @@ gameForm.addEventListener('submit', async (e) => {
     
     // Search for image automatically
     let imageUrl = await searchGameImage(name);
-    
-    // If no image found, use placeholder based on genre
-    if (!imageUrl) {
-        imageUrl = getPlaceholderImage(genre);
-    }
     
     const game = {
         id: Date.now(),
@@ -218,22 +321,6 @@ programForm.addEventListener('submit', (e) => {
     resetForm(programForm);
 });
 
-function getPlaceholderImage(genre) {
-    const colors = {
-        'Ação': 'dc3545',
-        'RPG': '6f42c1',
-        'Aventura': '28a745',
-        'Estratégia': 'fd7e14',
-        'Esporte': '007bff',
-        'Corrida': 'ffc107',
-        'Terror': '343a40',
-        'Indie': '17a2b8'
-    };
-    
-    const color = colors[genre] || '6c757d';
-    return `https://via.placeholder.com/310x310/${color}/ffffff?text=${encodeURIComponent(genre)}`;
-}
-
 function resetForm(form) {
     form.reset();
     form.querySelectorAll('.tile-size-btn').forEach(btn => {
@@ -246,6 +333,7 @@ function resetForm(form) {
     if (hiddenInput) {
         hiddenInput.value = 'medium';
     }
+    hideSearchStatus();
 }
 
 function saveGames() {
@@ -256,6 +344,9 @@ function savePrograms() {
     localStorage.setItem('programs', JSON.stringify(programs));
 }
 
+// Delete functions are now exposed globally via window.deleteGame and window.deleteProgram above
+// These local functions are kept for backwards compatibility but not used
+/*
 function deleteGame(id) {
     games = games.filter(game => game.id !== id);
     saveGames();
@@ -267,6 +358,7 @@ function deleteProgram(id) {
     savePrograms();
     renderPrograms();
 }
+*/
 
 function launchGame(path) {
     // In a real application, this would use Electron or Node.js to launch the game
