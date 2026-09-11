@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Hub - Seu Centro de Jogos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-gamepad"></i>
+                <h1>Game Hub</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-add" onclick="openModal('gameModal')">
+                    <i class="fas fa-plus"></i> Adicionar Jogo
+                </button>
+                <button class="btn-add" onclick="openModal('programModal')">
+                    <i class="fas fa-plus"></i> Adicionar Programa
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Games Section -->
+            <section class="games-section">
+                <h2><i class="fas fa-gamepad"></i> Meus Jogos</h2>
+                <div class="games-grid" id="gamesGrid">
+                    <!-- Games will be dynamically added here -->
+                </div>
+            </section>
+
+            <!-- Programs Section -->
+            <section class="programs-section">
+                <h2><i class="fas fa-desktop"></i> Programas</h2>
+                <div class="programs-grid" id="programsGrid">
+                    <!-- Programs will be dynamically added here -->
+                </div>
+            </section>
+
+            <!-- Sidebar with News, Tips & Curiosities -->
+            <aside class="sidebar">
+                <!-- What to Play Today -->
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-calendar-day"></i> O Que Jogar Hoje</h3>
+                    <div class="tip-content" id="tipContent">
+                        <p>Carregando dica...</p>
+                    </div>
+                    <button class="btn-refresh" onclick="generateTip()">
+                        <i class="fas fa-sync-alt"></i> Nova Dica
+                    </button>
+                </div>
+
+                <!-- Gaming News -->
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-newspaper"></i> Notícias Gamer</h3>
+                    <div class="news-container" id="newsContainer">
+                        <!-- News will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Curiosities -->
+                <div class="sidebar-card">
+                    <h3><i class="fas fa-lightbulb"></i> Curiosidades Gamer</h3>
+                    <div class="curiosity-content" id="curiosityContent">
+                        <p>Carregando curiosidade...</p>
+                    </div>
+                    <button class="btn-refresh" onclick="generateCuriosity()">
+                        <i class="fas fa-sync-alt"></i> Nova Curiosidade
+                    </button>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Game Modal -->
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('gameModal')">&times;</span>
+            <h2>Adicionar Novo Jogo</h2>
+            <form id="gameForm">
+                <div class="form-group">
+                    <label for="gameName">Nome do Jogo:</label>
+                    <input type="text" id="gameName" required placeholder="Ex: The Witcher 3">
+                </div>
+                <div class="form-group">
+                    <label for="gamePath">Caminho do Executável:</label>
+                    <input type="text" id="gamePath" required placeholder="Ex: C:\Games\Witcher3\witcher3.exe">
+                </div>
+                <div class="form-group">
+                    <label for="gameImage">URL da Imagem (opcional):</label>
+                    <input type="text" id="gameImage" placeholder="Ex: https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="gameGenre">Gênero:</label>
+                    <select id="gameGenre">
+                        <option value="Ação">Ação</option>
+                        <option value="Aventura">Aventura</option>
+                        <option value="RPG">RPG</option>
+                        <option value="Estratégia">Estratégia</option>
+                        <option value="Esportes">Esportes</option>
+                        <option value="Corrida">Corrida</option>
+                        <option value="Terror">Terror</option>
+                        <option value="Indie">Indie</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">Adicionar Jogo</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Program Modal -->
+    <div class="modal" id="programModal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('programModal')">&times;</span>
+            <h2>Adicionar Novo Programa</h2>
+            <form id="programForm">
+                <div class="form-group">
+                    <label for="programName">Nome do Programa:</label>
+                    <input type="text" id="programName" required placeholder="Ex: Discord">
+                </div>
+                <div class="form-group">
+                    <label for="programPath">Caminho do Executável:</label>
+                    <input type="text" id="programPath" required placeholder="Ex: C:\Program Files\Discord\Discord.exe">
+                </div>
+                <div class="form-group">
+                    <label for="programImage">URL da Imagem (opcional):</label>
+                    <input type="text" id="programImage" placeholder="Ex: https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="programCategory">Categoria:</label>
+                    <select id="programCategory">
+                        <option value="Comunicação">Comunicação</option>
+                        <option value="Streaming">Streaming</option>
+                        <option value="Edição">Edição</option>
+                        <option value="Navegador">Navegador</option>
+                        <option value="Utilitário">Utilitário</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">Adicionar Programa</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
